@@ -12,5 +12,9 @@ export default gql`
     bio: String
     following: [User]
     followers: [User]
+    totalFollowings: Int!
+    totalFollowers: Int!
+    isMe: Boolean!
+    isFollowing: Boolean!
   }
 `;
