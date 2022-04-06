@@ -44,6 +44,8 @@ const resolvers: Resolvers = {
       });
       return Boolean(exists);
     },
+    photos: async ({ id }, { page }, { loggedInUser, client }) =>
+      client.user.findUnique({ where: { id } }).photos(),
   },
 };
 
