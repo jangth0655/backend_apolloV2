@@ -28,10 +28,15 @@ export const getUser = async (token: string) => {
 export const protectedResolver =
   (resolver: Resolver) => (root, args, context, info) => {
     if (!context.loggedInUser) {
-      return {
-        ok: false,
-        error: "Plz log in to perform this action.",
-      };
+      const query = info.operation.operation === "query";
+      if (query) {
+        return null;
+      } else {
+        return {
+          ok: false,
+          error: "Plz log in to perform this action.",
+        };
+      }
     }
     return resolver(root, args, context, info);
   };

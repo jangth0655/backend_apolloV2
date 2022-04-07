@@ -1,8 +1,10 @@
-import { Resolvers } from "../../types";
+import { GraphQLUpload } from "graphql-upload";
+import { uploadToS3 } from "../../shared/shared.utils";
 import { protectedResolver } from "../../users/users.utils";
 import { processHashtags } from "../photos.utils";
 
-const resolvers: Resolvers = {
+const resolvers: any = {
+  Upload: GraphQLUpload,
   Mutation: {
     uploadPhoto: protectedResolver(
       async (_, { file, caption }, { loggedInUser, client }) => {
@@ -13,15 +15,16 @@ const resolvers: Resolvers = {
         if (caption) {
           hashtagsObj = processHashtags(caption);
         }
+        const fileUrl = await uploadToS3(file, loggedInUser.id, "uploads");
         return await client.photo.create({
           data: {
+            file: fileUrl,
+            caption,
             user: {
               connect: {
                 id: loggedInUser.id,
               },
             },
-            file,
-            caption,
             ...(hashtagsObj.length > 0 && {
               hashtags: {
                 connectOrCreate: hashtagsObj,
