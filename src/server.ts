@@ -1,8 +1,9 @@
 import "dotenv/config";
 import { getUser } from "./users/users.utils";
 import { resolvers, typeDefs } from "./schema";
-import { ApolloServer } from "apollo-server-express";
 import client from "./client";
+import * as http from "http";
+import { ApolloServer } from "apollo-server-express";
 import { graphqlUploadExpress } from "graphql-upload";
 
 import express = require("express");
@@ -14,11 +15,33 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   uploads: false,
-  context: async ({ req }) => {
-    return {
-      loggedInUser: await getUser(req.headers.token),
-      client,
-    };
+  context: async (ctx) => {
+    if (ctx.req) {
+      return {
+        loggedInUser: await getUser(ctx.req.headers?.token),
+        client,
+      };
+    } else {
+      const {
+        connection: {
+          context: { loggedInUser },
+        },
+      } = ctx;
+      return {
+        loggedInUser,
+      };
+    }
+  },
+  subscriptions: {
+    onConnect: async ({ token }: any) => {
+      if (!token) {
+        throw new Error("You can not listen");
+      }
+      const loggedInUser = await getUser(token);
+      return {
+        loggedInUser,
+      };
+    },
   },
 });
 
@@ -27,6 +50,10 @@ app.use(graphqlUploadExpress());
 app.use(logger("tiny"));
 app.use("/static", express.static("uploads"));
 server.applyMiddleware({ app });
-app.listen({ port: PORT }, () => {
+
+const httpServer = http.createServer(app);
+server.installSubscriptionHandlers(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT} ✅`);
 });
